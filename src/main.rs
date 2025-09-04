@@ -288,8 +288,6 @@ fn rec_factorial_checked(n: u32) -> (res: Option<u32>)
 }
 
 fn loop_factorial_checked(n: u32) -> (res: Option<u32>)
-    // requires
-    //     factorial::factorial(n as nat) <= u32::MAX,
     ensures
         res matches Some(r) ==> r as nat == factorial::factorial(n as nat),
 {
