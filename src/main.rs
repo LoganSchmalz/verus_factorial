@@ -275,6 +275,44 @@ fn loop2_factorial(n: u32) -> (res: u32)
     res
 }
 
+fn rec_factorial_checked(n: u32) -> (res: Option<u32>)
+    ensures res matches Some(r) ==> r as nat == factorial::factorial(n as nat),
+    decreases n
+{
+    if n <= 1 {
+        Some(1)
+    } else {
+        n.checked_mul(rec_factorial_checked(n-1)?)
+    }
+
+}
+
+fn loop_factorial_checked(n: u32) -> (res: Option<u32>)
+    // requires
+    //     factorial::factorial(n as nat) <= u32::MAX,
+    ensures
+        res matches Some(r) ==> r as nat == factorial::factorial(n as nat),
+{
+    let mut res: u32 = 1;
+    let mut i: u32 = 0;
+    assert(res == factorial::factorial(0) == factorial::factorial(1));
+    while i < n
+        invariant
+            i <= n,
+            res == factorial::factorial(i as nat),
+        decreases n - i,
+    {
+        i = i + 1;
+        // assert(i >= 1);
+        assert(res == factorial::factorial((i-1) as nat));
+        res = res.checked_mul(i)?;
+        // assert(i >= 1);
+        // assert(res == i * factorial::factorial((i-1) as nat));
+        proof { factorial::from_prev(i as nat) }
+    }
+    Some(res)
+}
+
 fn main() {
     assert(factorial::factorial(3) <= u32::MAX) by (compute);
     loop_factorial(3);
