@@ -311,6 +311,153 @@ fn loop_factorial_checked(n: u32) -> (res: Option<u32>)
     Some(res)
 }
 
+pub mod nats_facts {
+    use vstd::prelude::*;
+    
+    pub proof fn mod_if_divides(i: nat, j: nat) by (nonlinear_arith)
+        requires j != 0, exists |k: nat| k != 0 && i == #[trigger] (k * j)
+        ensures i % j == 0
+    {}
+    
+    pub proof fn divides_if_mod(i: nat, j: nat) by (nonlinear_arith)
+        requires i != 0, j != 0, i % j == 0
+        ensures exists |k: nat| i == #[trigger] (k * j) && k != 0
+    {
+        assert(i == (i / j) * j);
+    }
+
+    pub proof fn divide_mult_comm(i: nat, j: nat, k: nat) by (nonlinear_arith)
+        requires j > 0, i % j == 0
+        ensures i / j * k == k * i / j
+        decreases i
+    {}
+
+    pub proof fn mod_factor(i: nat, j: nat, k: nat) by (nonlinear_arith)
+        requires i != 0, j != 0, k != 0, i % j == 0, j % k == 0
+        ensures i % k == 0
+    {
+        divides_if_mod(i, j);
+        let x = i / j;
+        divides_if_mod(j, k);
+        let y = j / k;
+        assert(i == x * y * k);
+        mod_if_divides(i, k);
+    }
+}
+
+pub mod factorial_division {
+    use vstd::prelude::*;
+
+    use crate::nats_facts;
+    use crate::factorial::{self, factorial, from_prev, is_monotonic};
+
+    pub proof fn non_zero(i: nat) by (nonlinear_arith)
+        ensures factorial(i) != 0
+    {
+        is_monotonic(0, i)
+    }
+
+    pub proof fn divide(n: nat, i: nat) by (nonlinear_arith)
+        requires 1 <= i <= n
+        ensures i * factorial(n) / factorial(i) == factorial(n) / factorial((i-1) as nat)
+    {
+        non_zero(i);
+    }
+    
+    pub proof fn mod_step(n: nat) by (nonlinear_arith)
+        requires 1 <= n
+        ensures factorial(n) % factorial((n-1) as nat) == 0
+    {
+        factorial::from_prev(n);
+        non_zero((n-1) as nat);
+        nats_facts::mod_if_divides(factorial(n), factorial((n-1) as nat));
+    }
+
+    pub proof fn lt_mod(n: nat) by (nonlinear_arith)
+        ensures forall |i: nat| i <= n ==> factorial(n) % factorial(i) == 0
+        decreases n
+    {
+        if n == 0 {}
+        else {
+            mod_step(n);
+            lt_mod((n-1) as nat);
+            assert forall |i: nat| i <= n-1 implies #[trigger] (factorial((n-1) as nat) % factorial(i)) == 0 by {
+                lt_mod((n-1) as nat);
+            }
+            assert(factorial(n) % factorial((n-1) as nat) == 0);
+            assert forall |i: nat| i <= n-1 implies #[trigger] (factorial(n) % factorial(i)) == 0 by {
+                non_zero(n);
+                non_zero((n-1) as nat);
+                non_zero(i);
+                assert(factorial(n) % factorial((n-1) as nat) == 0);
+                assert(factorial((n-1) as nat) % factorial(i) == 0);
+                nats_facts::mod_factor(factorial(n), factorial((n-1) as nat), factorial(i));
+            }
+        }
+    }
+
+    pub proof fn lt_divides(n: nat, i: nat) by (nonlinear_arith)
+        requires i <= n
+        ensures exists |k: nat| factorial(n) == #[trigger] (k * factorial(i))
+    {
+        non_zero(n);
+        non_zero(i);
+        lt_mod(n);
+        nats_facts::divides_if_mod(factorial(n), factorial(i));
+    }
+    
+    pub proof fn grouping_mult(n: nat, i: nat) by (nonlinear_arith)
+        requires 1 <= i <= n
+        ensures factorial(n) / factorial(i) * i == i * factorial(n) / factorial(i)
+        decreases i
+    {
+        non_zero(i);
+        lt_mod(n);
+        nats_facts::divide_mult_comm(factorial(n), factorial(i), i);
+    }
+    
+    pub proof fn factors(n: nat, i: nat) by (nonlinear_arith)
+        requires 0 < i <= n
+        ensures factorial(n) % i == 0
+    {
+        lt_mod(n);
+        non_zero(n);
+        non_zero(i);
+        assert(i != 0);
+        assert(factorial(i) % i == 0);
+        assert(factorial(n) % factorial(i) == 0);
+        nats_facts::mod_factor(factorial(n), factorial(i), i);
+    }
+    
+}
+
+fn loop_factorial_checked2(n: u32) -> (res: Option<u32>)
+    ensures
+        res matches Some(r) ==> r as nat == factorial::factorial(n as nat),
+{
+    let mut res: u32 = 1;
+    let mut i: u32 = n;
+    assert(factorial::factorial(n as nat) / factorial::factorial(n as nat) == 1) by (nonlinear_arith) {
+        factorial_division::non_zero(n as nat)
+    };
+    while i > 1
+        invariant
+            i > 1 ==> 1 <= i <= n,
+            res == factorial::factorial(n as nat) / factorial::factorial(i as nat),
+        decreases i,
+    {
+        res = res.checked_mul(i)?;
+        assert(factorial::factorial(n as nat) / factorial::factorial(i as nat) * i as nat == factorial::factorial(n as nat) / factorial::factorial((i-1) as nat)) by
+        {
+            factorial_division::grouping_mult(n as nat, i as nat);
+            factorial_division::divide(n as nat, i as nat)
+        };
+        i = i - 1;
+    }
+    assert(res == factorial::factorial(n as nat) / 1);
+    Some(res)
+}
+
 fn main() {
     assert(factorial::factorial(3) <= u32::MAX) by (compute);
     loop_factorial(3);
