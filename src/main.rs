@@ -441,7 +441,7 @@ fn loop_factorial_checked2(n: u32) -> (res: Option<u32>)
     };
     while i > 1
         invariant
-            i >= 1 ==> i <= n,
+            i <= n,
             res == factorial::factorial(n as nat) / factorial::factorial(i as nat),
         decreases i,
     {
@@ -465,7 +465,7 @@ fn loop_factorial_checked3(n: u32) -> (res: Option<u32>)
     let mut i: u32 = n;
     while i > 1
         invariant
-            i >= 1 ==> i <= n,
+            i <= n,
             res * factorial::factorial(i as nat) == factorial::factorial(n as nat),
         decreases i,
     {
