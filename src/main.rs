@@ -399,13 +399,22 @@ pub mod factorial_division {
     pub proof fn lt_divides(n: nat, i: nat) by (nonlinear_arith)
         requires i <= n
         ensures exists |k: nat| factorial(n) == #[trigger] (k * factorial(i))
+        // decreases n
     {
         non_zero(n);
         non_zero(i);
         lt_mod(n);
         nats_facts::divides_if_mod(factorial(n), factorial(i));
+        // alternative proof
+        // if i <= n-1 {
+        //     lt_divides2((n-1) as nat, i);
+        //     assert(exists |k: nat| factorial(n) == n * #[trigger] (k * factorial(i)) == ((n * k) * factorial(i)));
+        // }
+        // else {
+        //     assert(factorial(n) == 1 * factorial(i));
+        // }
     }
-
+    
     pub proof fn grouping_mult(n: nat, i: nat) by (nonlinear_arith)
         requires 1 <= i <= n
         ensures factorial(n) / factorial(i) * i == i * factorial(n) / factorial(i)
@@ -427,6 +436,11 @@ pub mod factorial_division {
         assert(factorial(i) % i == 0);
         assert(factorial(n) % factorial(i) == 0);
         nats_facts::mod_factor(factorial(n), factorial(i), i);
+        // alternative proof
+        // lt_divides2(n, i);
+        // assert(exists |k: nat| factorial(n) == #[trigger] (k * factorial(i)) == k * i * factorial((i-1) as nat)) by {}; // why is by required here?
+        // assert(exists |k: nat| factorial(n) == #[trigger] (k * i * factorial((i-1) as nat)) == i * k * factorial((i-1) as nat));
+        // assert(forall |k: nat| #[trigger] (i * (k * factorial((i-1) as nat)) % i) == 0);
     }
 }
 
