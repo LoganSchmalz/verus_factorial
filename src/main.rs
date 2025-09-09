@@ -327,7 +327,7 @@ pub mod nats_facts {
     }
 
     pub proof fn divide_mult_comm(i: nat, j: nat, k: nat) by (nonlinear_arith)
-        requires j > 0, i % j == 0
+        requires j != 0, i % j == 0
         ensures i / j * k == k * i / j
         decreases i
     {}
