@@ -313,12 +313,12 @@ fn loop_factorial_checked(n: u32) -> (res: Option<u32>)
 
 pub mod nats_facts {
     use vstd::prelude::*;
-    
+
     pub proof fn mod_if_divides(i: nat, j: nat) by (nonlinear_arith)
         requires j != 0, exists |k: nat| k != 0 && i == #[trigger] (k * j)
         ensures i % j == 0
     {}
-    
+
     pub proof fn divides_if_mod(i: nat, j: nat) by (nonlinear_arith)
         requires i != 0, j != 0, i % j == 0
         ensures exists |k: nat| i == #[trigger] (k * j) && k != 0
@@ -363,7 +363,7 @@ pub mod factorial_division {
     {
         non_zero(i);
     }
-    
+
     pub proof fn mod_step(n: nat) by (nonlinear_arith)
         requires 1 <= n
         ensures factorial(n) % factorial((n-1) as nat) == 0
@@ -405,7 +405,7 @@ pub mod factorial_division {
         lt_mod(n);
         nats_facts::divides_if_mod(factorial(n), factorial(i));
     }
-    
+
     pub proof fn grouping_mult(n: nat, i: nat) by (nonlinear_arith)
         requires 1 <= i <= n
         ensures factorial(n) / factorial(i) * i == i * factorial(n) / factorial(i)
@@ -415,7 +415,7 @@ pub mod factorial_division {
         lt_mod(n);
         nats_facts::divide_mult_comm(factorial(n), factorial(i), i);
     }
-    
+
     pub proof fn factors(n: nat, i: nat) by (nonlinear_arith)
         requires 0 < i <= n
         ensures factorial(n) % i == 0
@@ -428,7 +428,6 @@ pub mod factorial_division {
         assert(factorial(n) % factorial(i) == 0);
         nats_facts::mod_factor(factorial(n), factorial(i), i);
     }
-    
 }
 
 fn loop_factorial_checked2(n: u32) -> (res: Option<u32>)
